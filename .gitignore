@@ -1,0 +1,33 @@
+#git will skip everything in here, no need to put any syntax just file name is enough
+# Environment variables (NEVER commit this)
+.env
+
+#json api folder
+client_secret_272991967051-igvunt5r4krpdvbp7tui43taeuqhbbao.apps.googleusercontent.com.json
+#client details photo
+youtube oauth client details.png
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache/bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# uv
+.python-version
+
+# VS Code
+.vscode/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Distribution/build artifacts
+dist/
+build/
+*.egg-info/
