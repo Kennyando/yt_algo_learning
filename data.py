@@ -32,7 +32,7 @@ upload_playlist_id = lugwig_yt['items'][0]['contentDetails']['relatedPlaylists']
 playlist_items_request = youtube.playlistItems().list(
     part = 'snippet,contentDetails',
     playlistId = upload_playlist_id,
-    maxResults = 50
+    maxResults = 50 #edit to 50 after the rest of the stuff works
 ) #http request object , when printed is giving the memory location in computer, need to execute to get the response
 
 playlist_items_response = playlist_items_request.execute() #this one actually returns the videos 
@@ -46,14 +46,49 @@ for item in playlist_items_response['items']:
     id = item['contentDetails']['videoId']
     video_ids[position] = id
 
+#make a video id list so that you only need to make the request once instead of 50 times, and then iterating over the list 
+video_ids_list = ','.join(video_ids.values()) #joins the keys not the values
 #need to get the video using video function, construct the object first
 #dict will give you the key, so id in this case will give the number and you need to index into the dictionary
-for id in video_ids:
-    video_stats = youtube.videos().list(
-        part = 'snippet,statistics',
-        id = video_ids[id]
-    )
-    video_stats_response = video_stats.execute()
-    pprint(video_stats_response)
+video_stats = youtube.videos().list(
+    part = 'snippet,statistics,contentDetails,LiveStreamingDetails',
+    id = video_ids_list
+)
+video_stats_response = video_stats.execute() #contains the batch of 50 videos
+
+rows_data = [] #initialize list to store dict and then subsequently pass that as a pandas dataframe
+for video in video_stats_response['items']:
+    #items is a list with only one entry
+    title = video['snippet']['localized']['title']
+    views = video['statistics']['viewCount']
+    likes = video['statistics']['likeCount']
+    comment_count = video['statistics']['commentCount']
+    duration = video['contentDetails']['duration']
+    upload_time = video['snippet']['publishedAt']
+    is_vod = 'liveStreamingDetails' in video
+
+    #append to dictionary
+    rows_data.append({
+        'title': title,
+        'views': views,
+        'likes': likes,
+        'comment_count': comment_count,
+        'duration': duration,
+        'upload_time': upload_time,
+        'is_vod': is_vod
+    })
+
+#convert to pd dataframe
+df = pd.DataFrame(rows_data)
+
+print(df.head())
+    #pprint(video_stats_response)
+
+#filter out only videos from the list 'kind': 'youtube#video', currently includes shorts, 
+#maybe try using contentDetails.duration to filter out <5 mins and > 1hr videos
+#contentDetails.duration uses ISO8601 
+#metrics i want to measure, view count, like count, comment count, upload time, frequency between uploads, title, description tags
+#description of live streams have #live
+#shorts
 
 #github https https://github.com/Kennyando/yt_algo_learning.git
