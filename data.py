@@ -7,7 +7,7 @@ from googleapiclient.errors import HttpError
 import pandas as pd
 import json
 import time
-
+from pprint import pprint
 
 load_dotenv()
 api_key = os.getenv("YOUTUBE_API_KEY")
@@ -22,10 +22,38 @@ channel_id = 'UCrPseYLGpNygVi34QpGNqpA' #ludwigs channel id
 #use youtube object to do function calls or class methods
 #youtube.<resource>().<method>(<parameters>).execute()
 #channels list
-response =youtube.channels().list(part = 'contentDetails',
+lugwig_yt =youtube.channels().list(part = 'statistics,contentDetails,snippet',
                                   id = channel_id,
                                   ).execute()
+#keys that i may want to index into 
+#relatedPlaylists, uploads
+upload_playlist_id = lugwig_yt['items'][0]['contentDetails']['relatedPlaylists']['uploads']
 
-print(response)
+playlist_items_request = youtube.playlistItems().list(
+    part = 'snippet,contentDetails',
+    playlistId = upload_playlist_id,
+    maxResults = 50
+) #http request object , when printed is giving the memory location in computer, need to execute to get the response
+
+playlist_items_response = playlist_items_request.execute() #this one actually returns the videos 
+
+#index into the video stats from this video is under id
+#storing video id and position into dictionary
+video_ids = {}
+#api docs for playlist structure https://developers.google.com/youtube/v3/docs/playlistItems#resource
+for item in playlist_items_response['items']:
+    position = item['snippet']['position']
+    id = item['contentDetails']['videoId']
+    video_ids[position] = id
+
+#need to get the video using video function, construct the object first
+#dict will give you the key, so id in this case will give the number and you need to index into the dictionary
+for id in video_ids:
+    video_stats = youtube.videos().list(
+        part = 'snippet,statistics',
+        id = video_ids[id]
+    )
+    video_stats_response = video_stats.execute()
+    pprint(video_stats_response)
 
 #github https https://github.com/Kennyando/yt_algo_learning.git
