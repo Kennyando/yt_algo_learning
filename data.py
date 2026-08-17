@@ -59,6 +59,8 @@ while True:
 # need to batch the video id list to 50 each because the api will only take in 50 per call
 #need to get the video using video function, construct the object first
 #dict will give you the key, so id in this case will give the number and you need to index into the dictionary
+rows_data = [] #initialize list to store dict and then subsequently pass that as a pandas dataframe
+
 for i in range(0, len(all_video_ids), 50):
     chunk = all_video_ids[i:i+50]
     id_string = ','.join(chunk) #convert to string so can pass as a parameter
@@ -70,7 +72,6 @@ for i in range(0, len(all_video_ids), 50):
 
     video_stats_response = video_stats.execute() #contains the batch of 50 videos
 
-    rows_data = [] #initialize list to store dict and then subsequently pass that as a pandas dataframe
     for video in video_stats_response['items']:
         #items is a list with only one entry
         title = video['snippet']['localized']['title']
