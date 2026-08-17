@@ -97,7 +97,7 @@ for i in range(0, len(all_video_ids), 50):
 df = pd.DataFrame(rows_data)
 
 #save as csv
-df.to_csv("ludwig_analytics.csv")
+df.to_csv("ludwig_analytics.csv",index = False)
 
 #consider converting to csv and just making the thing a function so i just need to run it once and its done
 #it almost works but is only calling out 13 videos now

@@ -1,0 +1,1 @@
+#where i'll be throwing in the title, duration, upload time, and maybe thumbnail eventually for the model to predict how the video does
