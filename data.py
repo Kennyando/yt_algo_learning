@@ -74,6 +74,7 @@ for i in range(0, len(all_video_ids), 50):
 
     for video in video_stats_response['items']:
         #items is a list with only one entry
+        video_id = video['id']
         title = video['snippet']['localized']['title']
         views = video['statistics']['viewCount']
         likes = video['statistics']['likeCount']
@@ -81,16 +82,20 @@ for i in range(0, len(all_video_ids), 50):
         duration = video['contentDetails']['duration']
         upload_time = video['snippet']['publishedAt']
         is_vod = 'liveStreamingDetails' in video
+        thumbnail_url = video['snippet']['thumbnails']['high']['url']
 
         #append to dictionary
         rows_data.append({
+            'video_id': video_id,
             'title': title,
             'views': views,
             'likes': likes,
             'comment_count': comment_count,
             'duration': duration,
             'upload_time': upload_time,
-            'is_vod': is_vod
+            'is_vod': is_vod,
+            'thumbnail_url': thumbnail_url,
+            'video_url': f"https://www.youtube.com/watch?v={video_id}"
         })
 
 #convert to pd dataframe
