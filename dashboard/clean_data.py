@@ -15,6 +15,7 @@ df['upload_time'] = pd.to_datetime(df['upload_time'])
 
 #make an upload hour,date col
 df['upload_date'] = df['upload_time'].dt.date
+df['upload_month'] = df['upload_time'].dt.to_period("M").dt.to_timestamp()
 df['upload_hour'] = df['upload_time'].dt.hour
 
 
@@ -22,7 +23,7 @@ df['upload_hour'] = df['upload_time'].dt.hour
 df['is_short'] = df['duration'] <= pd.Timedelta(seconds= 90)
 
 #rearrange column order
-df = df[['video_id', 'title', 'views', 'likes', 'comment_count', 'duration', 'upload_time', 'upload_date', 'upload_hour', 'is_short', 'is_vod','thumbnail_url','video_url']]
+df = df[['video_id', 'title', 'views', 'likes', 'comment_count', 'duration', 'upload_time', 'upload_date','upload_month', 'upload_hour', 'is_short', 'is_vod','thumbnail_url','video_url']]
 
 #deal with overlap cases where the stream is less than 90s because of some announcement etc, anyway if it is a stream , it cannot be a short
 df.loc[(df['is_short'] == True) & (df['is_vod'] == True), 'is_short'] = False

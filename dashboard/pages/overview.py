@@ -33,12 +33,24 @@ layout = html.Div([
         ],
         value = "views"
     ),
-
-    dcc.Graph(id = "overview_graph")
+    #grid layout for graphs
+    html.Div([
+        dcc.Graph(id = "monthly_total"),
+        dcc.Graph(id= "monthly_avg"),
+        dcc.Graph(id="monthly_uploads"),
+        dcc.Graph(id="placeholder")
+    ], style = {
+        "display": "grid",
+        "gridTemplateColumns": "1fr 1fr",
+        "gridTemplateRows": "1fr 1fr",
+        "gap": "10px"
+    })
 ])
 
 @callback(
-    Output("overview_graph", "figure"),
+    Output("monthly_total", "figure"),
+    Output("monthly_avg", "figure"),
+    Output("monthly_uploads", "figure"),
     Input("content_type_filter", "value"),
     Input("metrics_dropdown", "value")
 )
@@ -51,14 +63,41 @@ def update_graph(selected_types, metric):
         temp = all_dfs[t].copy()
         temp['content_type'] = t
         dfs_to_plot.append(temp)
-    combined = pd.concat(dfs_to_plot)
+    combined_df = pd.concat(dfs_to_plot)
 
-    fig = px.scatter(
-        combined,
+    #monthly total at 0,0 position
+    monthly_total = combined_df.groupby(['upload_month','content_type'])[metric].sum().reset_index()
+    monthly_total_fig = px.line(
+        monthly_total, x = "upload_month", y = metric, color = "content_type",
+        title = f"Total {metric.replace("_", " ").title()} per Month"
+    )
+    monthly_total_fig.update_xaxes(tickformat = "%b %Y") #format date to show yyyy-m
+
+    #monthly avg
+    monthly_avg = combined_df.groupby(['upload_month','content_type'])[metric].mean().reset_index()
+    monthly_avg_fig = px.line(
+        monthly_avg, x = "upload_month", y = metric, color = "content_type", 
+        title = f"Average {metric.replace("_", " ").title()} per Video"
+    )
+    monthly_avg_fig.update_xaxes(tickformat = "%b %Y")
+    #monthly uploads
+    monthly_uploads = combined_df.groupby(['upload_month','content_type'])['video_id'].count().reset_index()
+    monthly_uploads = monthly_uploads.rename(columns = {"video_id": "uploads"})
+    monthly_uploads_fig = px.bar(
+        monthly_uploads, x = 'upload_month', y = "uploads", color = "content_type",
+        title = "Uploads per Month", barmode = "stack", opacity = 0.6
+    )
+    monthly_uploads_fig.update_xaxes(tickformat = "%b %Y")
+
+    #will not be using for now
+    scatter = px.scatter(
+        combined_df,
         x = "upload_date",
         y = metric,
         color = "content_type",
         hover_data = ['title'],
         title = f"{metric.replace("_"," ").title()} over time"
     )
-    return fig
+
+
+    return monthly_total_fig, monthly_avg_fig, monthly_uploads_fig
