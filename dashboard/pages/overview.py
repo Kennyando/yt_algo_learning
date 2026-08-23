@@ -54,7 +54,7 @@ layout = html.Div([
         dcc.Graph(id = "monthly_total"),
         dcc.Graph(id= "monthly_avg"),
         dcc.Graph(id="monthly_uploads"),
-        dcc.Graph(id="placeholder")
+        dcc.Graph(id="avg_duration")
     ], style = {
         "display": "grid",
         "gridTemplateColumns": "1fr 1fr",
@@ -67,6 +67,7 @@ layout = html.Div([
     Output("monthly_total", "figure"),
     Output("monthly_avg", "figure"),
     Output("monthly_uploads", "figure"),
+    Output("avg_duration", "figure"),
     Input("content_type_filter", "value"),
     Input("metrics_dropdown", "value"),
     Input("time_period_filter", "value")
@@ -97,12 +98,12 @@ def update_graph(selected_types, metric, time_period):
         #use start date to filter now
         combined_df = combined_df[combined_df["upload_time"] >= start_date]
         
-
+    #monthly gained views is probably more impactful rather than the total from that month
     #monthly total at 0,0 position
     monthly_total = combined_df.groupby(['upload_month','content_type'])[metric].sum().reset_index()
     monthly_total_fig = px.line(
         monthly_total, x = "upload_month", y = metric, color = "content_type",
-        title = f"Total {metric.replace("_", " ").title()} per Month"
+        title = f"Total {metric.replace("_", " ").title()} grouped by Upload Month"
     )
     monthly_total_fig.update_xaxes(tickformat = "%b %Y") #format date to show yyyy-m
 
@@ -113,6 +114,7 @@ def update_graph(selected_types, metric, time_period):
         title = f"Average {metric.replace("_", " ").title()} per Video"
     )
     monthly_avg_fig.update_xaxes(tickformat = "%b %Y")
+
     #monthly uploads
     monthly_uploads = combined_df.groupby(['upload_month','content_type'])['video_id'].count().reset_index()
     monthly_uploads = monthly_uploads.rename(columns = {"video_id": "uploads"})
@@ -121,6 +123,29 @@ def update_graph(selected_types, metric, time_period):
         title = "Uploads per Month", barmode = "stack", opacity = 0.6
     )
     monthly_uploads_fig.update_xaxes(tickformat = "%b %Y")
+
+    #avg duration of videos, need to format the duration col because its in iso format, format into a numeric
+    #need the whole row, because 2 inputs, duration and isshort
+    def format_duration(row):
+        minutes = row['duration_minutes']
+        if row['content_type'] == 'shorts':
+            seconds = minutes * 60
+            return f"{seconds:.0f}s"
+        hrs = int(minutes // 60)
+        mins = int(minutes % 60)
+        if hrs > 0:
+            return f"{hrs}h {mins}m"
+        return f"{mins}m"
+    
+    monthly_avg_duration = combined_df.groupby(['upload_month', 'content_type'])['duration_minutes'].mean().reset_index()
+    #set axis = 1 to tell pandas to call the function per row
+    monthly_avg_duration['duration_display'] = monthly_avg_duration.apply(format_duration, axis = 1)
+    avg_duration_fig = px.line(
+        monthly_avg_duration, x = "upload_month", y = "duration_minutes", color = "content_type",
+        hover_data = {"duration_display": True, "duration_minutes": False},
+        title = "Average Duration of Uploads per Month"
+    )
+    avg_duration_fig.update_xaxes(tickformat = "%b %Y")
 
     #will not be using for now
     scatter = px.scatter(
@@ -133,4 +158,4 @@ def update_graph(selected_types, metric, time_period):
     )
 
 
-    return monthly_total_fig, monthly_avg_fig, monthly_uploads_fig
+    return monthly_total_fig, monthly_avg_fig, monthly_uploads_fig, avg_duration_fig

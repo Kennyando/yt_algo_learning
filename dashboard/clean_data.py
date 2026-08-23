@@ -7,7 +7,7 @@ df = pd.read_csv("ludwig_analytics.csv")
 
 #clean duration col in iso 8601 standard, will become time delta
 df['duration'] = pd.to_timedelta(df['duration'])
-
+df['duration_minutes'] = df['duration'].dt.total_seconds() / 60
 #clean upload time
 # raw API format: YYYY-MM-DDTHH:MM:SSZ (ISO 8601, UTC)
 # upload_time format: YYYY-MM-DD HH:MM:SS+00:00 (UTC) offset from utc(coordinated universal time)
@@ -19,11 +19,14 @@ df['upload_month'] = df['upload_time'].dt.to_period("M").dt.to_timestamp()
 df['upload_hour'] = df['upload_time'].dt.hour
 
 
-#make a column for shorts, max length is 3mins
+#make a column for shorts, max length is 3mins, exclude videos
 df['is_short'] = df['duration'] <= pd.Timedelta(seconds= 90)
+#clean old videos which are less than 90 secs, montages etc
+shorts_release_date = pd.Timestamp("2021-03-18", tz = "UTC")
+df.loc[(df['is_short'] == True) & (df['upload_time'] < shorts_release_date), 'is_short'] = False
 
 #rearrange column order
-df = df[['video_id', 'title', 'views', 'likes', 'comment_count', 'duration', 'upload_time', 'upload_date','upload_month', 'upload_hour', 'is_short', 'is_vod','thumbnail_url','video_url']]
+df = df[['video_id', 'title', 'views', 'likes', 'comment_count', 'duration','duration_minutes', 'upload_time', 'upload_date','upload_month', 'upload_hour', 'is_short', 'is_vod','thumbnail_url','video_url']]
 
 #deal with overlap cases where the stream is less than 90s because of some announcement etc, anyway if it is a stream , it cannot be a short
 df.loc[(df['is_short'] == True) & (df['is_vod'] == True), 'is_short'] = False
@@ -40,8 +43,6 @@ all_dfs = {
     'shorts' : df_shorts,
     'vods' : df_vods
 }
-
-
 #convert to file so that the plotting file can run it without doing the cleaning everytime
 pd.to_pickle(all_dfs, 'ludwig_data.pkl')
 
