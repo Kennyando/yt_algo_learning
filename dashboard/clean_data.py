@@ -44,7 +44,8 @@ all_dfs = {
     'vods' : df_vods
 }
 #convert to file so that the plotting file can run it without doing the cleaning everytime
-pd.to_pickle(all_dfs, 'ludwig_data.pkl')
+print(df.info())
+#pd.to_pickle(all_dfs, 'ludwig_data.pkl')
 
 #for the most part less than 90 sec is a good indicator of it being a youtube short but there are some outliers, music videos, old school youtube with shorter videos
 #print(df[(df['duration'] <= pd.Timedelta(minutes = 3)) & (df['duration'] > pd.Timedelta(seconds= 90))])

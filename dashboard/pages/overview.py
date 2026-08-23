@@ -8,7 +8,7 @@ from utils.data_loader import load_data #function from data loader python file
 #add checks for empty results, ie if no vods, no shorts or timeperiod not long enough
 
 #register python file as a page and make it available at the path "/" which is the root of the website, as overview
-dash.register_page(__name__, path = "/", name = "Overview") 
+dash.register_page(__name__, path = "/", name = "Overview")  #/ is also reserved for what you want to load by default
 
 all_dfs = load_data()
 
@@ -16,19 +16,19 @@ layout = html.Div([
     html.H3("Channel Overview"),
 
     dcc.Checklist(
-        id = "content_type_filter",
+        id = "overview_content_type_filter",
         options = [
             {"label": "Videos", "value" : "videos"}, #videos corresponds to the videos df loaded, same for others
             {"label": "Shorts", "value" : "shorts"},
             {"label": "VODs", "value" : "vods"},
         ],
-        value = ['videos', 'shorts', 'vods'],
+        value = ['videos'],
         inline = True
     ),
 
     #to toggle between what metrics you want to view
     dcc.Dropdown(
-        id = "metrics_dropdown",
+        id = "overview_metrics_dropdown",
         options = [
             {"label": "Views", "value": "views"},
             {"label": "Likes", "value": "likes"},
@@ -38,7 +38,7 @@ layout = html.Div([
     ),
     #time period filter
     dcc.RadioItems(
-        id = "time_period_filter",
+        id = "overview_time_period_filter",
         options = [
             {"label": "6M", "value": "6m"},
             {"label": "YTD", "value": "ytd"},
@@ -46,15 +46,15 @@ layout = html.Div([
             {"label": "2Y", "value": "2y"},
             {"label": "Max", "value" : "max"},
         ],
-        value = "max",
+        value = "ytd",
         inline = True
     ),
     #grid layout for graphs
     html.Div([
-        dcc.Graph(id = "monthly_total"),
-        dcc.Graph(id= "monthly_avg"),
-        dcc.Graph(id="monthly_uploads"),
-        dcc.Graph(id="avg_duration")
+        dcc.Graph(id = "overview_monthly_total"),
+        dcc.Graph(id= "overview_monthly_avg"),
+        dcc.Graph(id="overview_monthly_uploads"),
+        dcc.Graph(id="overview_avg_duration")
     ], style = {
         "display": "grid",
         "gridTemplateColumns": "1fr 1fr",
@@ -64,13 +64,13 @@ layout = html.Div([
 ])
 
 @callback(
-    Output("monthly_total", "figure"),
-    Output("monthly_avg", "figure"),
-    Output("monthly_uploads", "figure"),
-    Output("avg_duration", "figure"),
-    Input("content_type_filter", "value"),
-    Input("metrics_dropdown", "value"),
-    Input("time_period_filter", "value")
+    Output("overview_monthly_total", "figure"),
+    Output("overview_monthly_avg", "figure"),
+    Output("overview_monthly_uploads", "figure"),
+    Output("overview_avg_duration", "figure"),
+    Input("overview_content_type_filter", "value"),
+    Input("overview_metrics_dropdown", "value"),
+    Input("overview_time_period_filter", "value")
 )
 
 #make year to date and 1y 2y recent, follows order of the callback, first input in callback = first input in function that its decorating
