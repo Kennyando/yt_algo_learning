@@ -9,7 +9,7 @@ server = app.server #standard if ever want to deploy
 
 app.layout = html.Div([
     html.Div([
-        html.H2('Lugwig Channel Dashboard'),
+        html.H2('Channel Dashboard for Ludwig'),
         html.Div([ #wrapper into python list
             dcc.Link(page['name'], href = page['path'], className = "nav-link") #will show a link which you can click on to change page, list comprehension 
             for page in dash.page_registry.values() #get page for every page registered so no need to hard the names like best page, best thumbnails etc

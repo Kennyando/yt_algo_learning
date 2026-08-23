@@ -4,6 +4,9 @@ from dash import html, dcc, callback, Input, Output
 import plotly.express as px
 from utils.data_loader import load_data #function from data loader python file
 
+#todo when polishing
+#add checks for empty results, ie if no vods, no shorts or timeperiod not long enough
+
 #register python file as a page and make it available at the path "/" which is the root of the website, as overview
 dash.register_page(__name__, path = "/", name = "Overview") 
 
@@ -33,6 +36,19 @@ layout = html.Div([
         ],
         value = "views"
     ),
+    #time period filter
+    dcc.RadioItems(
+        id = "time_period_filter",
+        options = [
+            {"label": "6M", "value": "6m"},
+            {"label": "YTD", "value": "ytd"},
+            {"label": "1Y", "value": "1y"},
+            {"label": "2Y", "value": "2y"},
+            {"label": "Max", "value" : "max"},
+        ],
+        value = "max",
+        inline = True
+    ),
     #grid layout for graphs
     html.Div([
         dcc.Graph(id = "monthly_total"),
@@ -52,18 +68,35 @@ layout = html.Div([
     Output("monthly_avg", "figure"),
     Output("monthly_uploads", "figure"),
     Input("content_type_filter", "value"),
-    Input("metrics_dropdown", "value")
+    Input("metrics_dropdown", "value"),
+    Input("time_period_filter", "value")
 )
 
 #make year to date and 1y 2y recent, follows order of the callback, first input in callback = first input in function that its decorating
 #its a bit too noisy rn, cant tell, could do something to toggle total views per month, need to distinguish the dots between shorts, vods, videos
-def update_graph(selected_types, metric):
+def update_graph(selected_types, metric, time_period):
     dfs_to_plot = []
     for t in selected_types:
         temp = all_dfs[t].copy()
         temp['content_type'] = t
         dfs_to_plot.append(temp)
     combined_df = pd.concat(dfs_to_plot)
+
+    #do pandas filter for time period
+    if time_period != 'max':
+        #find latest upload and work backwards
+        latest_upload_date = combined_df["upload_time"].max()
+        if time_period == "6m":
+            start_date = latest_upload_date - pd.DateOffset(months= 6)
+        elif time_period == "ytd": #first day of current year to current date
+            start_date = pd.Timestamp(year = latest_upload_date.year, month = 1, day = 1, tz = latest_upload_date.tz)
+        elif time_period == "1y":
+            start_date = latest_upload_date - pd.DateOffset(years = 1)
+        elif time_period == "2y":
+            start_date = latest_upload_date - pd.DateOffset(years = 2)
+        #use start date to filter now
+        combined_df = combined_df[combined_df["upload_time"] >= start_date]
+        
 
     #monthly total at 0,0 position
     monthly_total = combined_df.groupby(['upload_month','content_type'])[metric].sum().reset_index()
