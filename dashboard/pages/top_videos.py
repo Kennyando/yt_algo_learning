@@ -71,17 +71,17 @@ def update_top_videos(content_type, time_period, metric):
             start_date = latest_date - pd.DateOffset(months = 6)
         elif time_period == "ytd":
             start_date = pd.Timestamp(year = latest_date.year, month = 1 , day = 1, tz = latest_date.tz)
-        elif time_period == "1Y":
+        elif time_period == "1y":
             start_date = latest_date - pd.DateOffset(years = 1)
-        elif time_period == "2Y":
-            start_date == latest_date - pd.DateOffset(years = 2)
+        elif time_period == "2y":
+            start_date = latest_date - pd.DateOffset(years = 2)
 
         df = df[df["upload_time"] >= start_date]
 
     #get top 10 videos by metric selected
     top10 = df.sort_values(metric, ascending = False).head(10)
 
-    cards = []
+    cards = [] #make a list of A tags which is individual video tags, and children in the output will unpack each iterable when it sees a list, same as react
     #itertuples lets you iterate row by row, without it it will iterate over the column names, returns a named tuple for each row
     for row in top10.itertuples():
         #create a card for each video, <a> tag for links,
