@@ -7,3 +7,9 @@ def load_data():
     """
     all_dfs = pd.read_pickle('ludwig_data.pkl')
     return all_dfs
+
+def load_channel_stats():
+    """
+    loads the general channel stats, total subs, views and upload counter
+    """
+    return pd.read_pickle('ludwig_channel_stats.pkl')

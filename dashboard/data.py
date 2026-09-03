@@ -1,4 +1,4 @@
-#this will be where i get adn store the data from youtube
+#this will be where i get and store the data from youtube
 from dotenv import load_dotenv
 import os
 from googleapiclient.discovery import build
@@ -30,6 +30,15 @@ upload_playlist_id = lugwig_yt['items'][0]['contentDetails']['relatedPlaylists']
 next_page_token = None
 all_video_ids = []
 
+#raw channel stats for youtube card in the dashboard
+channel_stats_raw = lugwig_yt['items'][0]['statistics']
+channel_stats = {
+    'channel_title': lugwig_yt['items'][0]['snippet']['title'],
+    'subscriber_count': int(channel_stats_raw['subscriberCount']) if 'subscriberCount' in channel_stats_raw else None,
+    'total_view_count': int(channel_stats_raw['viewCount']),
+    'video_count': int(channel_stats_raw['videoCount']),
+}
+pd.to_pickle(channel_stats, "ludwig_channel_stats.pkl")
 #use while to parse through all uploads
 while True:
     playlist_items_request = youtube.playlistItems().list(

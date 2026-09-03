@@ -5,7 +5,7 @@ from utils.data_loader import load_data
 import plotly.express as px
 
 #register page
-dash.register_page(__name__, path= "/misc", name = "miscellaneous stats")
+dash.register_page(__name__, path= "/misc", name = "Miscellaneous Stats")
 
 all_dfs = load_data()
 
