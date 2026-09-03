@@ -5,7 +5,7 @@ from dash import dcc, Dash, html
 from utils.data_loader import load_channel_stats
 
 #need suppress_callback_exceptions for dynamic and multipage because dash tries to check if all the elements are there at the start
-app = Dash(__name__, use_pages = True, suppress_callback_exceptions = True)
+app = Dash(__name__, use_pages = True, suppress_callback_exceptions = True) #when using  __name__ dash will scan assets folder automatically for the css file
 server = app.server #standard if ever want to deploy
 
 #load channel stats from the loader

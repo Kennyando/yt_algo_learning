@@ -49,7 +49,8 @@ layout = html.Div([
         value = "ytd",
         inline = True
     ),
-    #grid layout for graphs
+    #grid layout for graphs 
+    #auto generates the class as dash-graph with the js plotly plot nested
     html.Div([
         dcc.Graph(id = "overview_monthly_total"),
         dcc.Graph(id= "overview_monthly_avg"),
