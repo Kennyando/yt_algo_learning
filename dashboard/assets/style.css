@@ -9,6 +9,8 @@
   --text-muted: #9aa2b1;
   --accent: #ff4d4d;      /* youtube-ish red, used sparingly */
   --accent-soft: rgba(90, 130, 200, 0.18);
+  --accent-blue: #3987e5;   /* matches the Videos colour in theme.py */
+  --accent-ring: rgba(57, 135, 229, 0.55);
   --radius: 10px;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
@@ -223,17 +225,193 @@ h3 {
 }
 
 
+/* ---------- filter bar (one row above the charts it controls) ---------- */
+
+.filter_bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px 28px;
+  margin-bottom: 18px;
+}
+
+.filter_group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.filter_group .dash-dropdown {
+  min-width: 170px;
+}
+
+.filter_label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* filter pills: Dash renders Checklist / RadioItems as <label class="dash-options-list-option">;
+   the native checkbox / radio is hidden (still keyboard focusable) and the label becomes the pill */
+.pill_group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill_group .dash-options-list-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pill_group .dash-options-list-option-wrapper {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.pill_group .dash-options-list-option-text,
+.pill_group .dash-options-list-option-text span {
+  color: var(--text-muted) !important;
+}
+
+.pill_group .dash-options-list-option:hover {
+  border-color: var(--text-muted);
+}
+
+.pill_group .dash-options-list-option:focus-within {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.pill_group .dash-options-list-option.selected {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent-blue);
+}
+
+.pill_group .dash-options-list-option.selected .dash-options-list-option-text,
+.pill_group .dash-options-list-option.selected .dash-options-list-option-text span {
+  color: var(--text) !important;
+}
+
+/* a tick on selected checklist pills so the state is not colour alone */
+.pill_group.dash-checklist .dash-options-list-option.selected .dash-options-list-option-text::before {
+  content: "\2713\00a0";
+}
+
+/* ---------- KPI tiles ---------- */
+
+.kpi_row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.kpi_card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  box-shadow: var(--shadow);
+}
+
+.kpi_label {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.kpi_value {
+  margin: 4px 0 6px;
+  font-size: 1.75rem;
+  font-weight: 650;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.kpi_delta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.kpi_delta.good { color: #0ca30c; }
+.kpi_delta.bad  { color: #ec6b6b; }
+
+/* ---------- graph grid ---------- */
+
+.graph_grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* a wide chart spans both columns */
+.graph_grid .span_2 {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .graph_grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- written takeaways under the charts ---------- */
+
+.insights_card {
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 22px;
+  box-shadow: var(--shadow);
+}
+
+.insights_card h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.insights_card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.footnote {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* ---------- top videos card grid ---------- */
- 
+
 .card_grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 18px;
-  margin-top: 18px;
+  margin-top: 4px;
 }
- 
+
 .video_card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -243,38 +421,83 @@ h3 {
   box-shadow: var(--shadow);
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
- 
+
 .video_card:hover {
   transform: translateY(-3px);
   border-color: var(--accent);
 }
- 
-.video_card .thumbnail {
-  width: 100%;
+
+/* thumbnail with the rank and length pinned on top of it */
+.thumb_wrap {
+  position: relative;
   aspect-ratio: 16 / 9;
+  background: var(--surface-raised);   /* shows while the image loads */
+}
+
+.thumb_wrap .thumbnail {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
- 
+
+.rank_badge,
+.duration_badge {
+  position: absolute;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(15, 17, 21, 0.82);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rank_badge     { top: 8px;    left: 8px; }
+.duration_badge { bottom: 8px; right: 8px; }
+
 .video_card .video_title {
-  margin: 10px 12px 4px;
+  margin: 10px 12px 6px;
   font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.3;
+  min-height: 2.6em;   /* keeps one- and two-line titles the same height so cards line up */
   /* clamp long titles to 2 lines instead of blowing out card height */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
- 
-.video_card p {
-  margin: 2px 12px;
-  font-size: 0.8rem;
+
+.card_row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0 12px 6px;
+}
+
+.card_main_stat {
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+/* how many times the period's median this video got */
+.chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.video_card .card_meta {
+  margin: 0 12px 4px;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
- 
-.video_card p:last-child {
+
+.video_card .card_meta:last-child {
   margin-bottom: 12px;
 }
 
