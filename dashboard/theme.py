@@ -30,6 +30,11 @@ ACCENT = "#3987e5"
 TYPE_COLORS = {"Videos": "#3987e5", "Shorts": "#d95926", "Streams": "#199e70"}
 TYPE_ORDER = ["Videos", "Shorts", "Streams"]
 
+# Compare Years page: colour = which year slot, not content type, so these two hues are
+# deliberately different from the three content-type colours above (validated together)
+YEAR_A_COLOR = "#9085e9"  # violet, the first year picked
+YEAR_B_COLOR = "#c98500"  # amber, the second year picked
+
 # low -> high, one hue, starts near the card surface so "nothing" recedes
 SEQ_SCALE = [[0.0, "#1c2535"], [0.35, "#184f95"], [0.7, "#3987e5"], [1.0, "#9ec5f4"]]
 
@@ -213,6 +218,22 @@ def log_ticks(lo, hi, base=2, suffix="×"):
     vals = [base ** p for p in range(lo_p, hi_p + 1)]
     text = [(f"{v:g}{suffix}") for v in vals]
     return vals, text
+
+
+def nice_log_ticks(lo, hi):
+    """1-2-5 ticks (100K, 200K, 500K, 1M...) inside [lo, hi] for a log axis, at least three of them."""
+    lo, hi = max(lo, 1e-9), max(hi, lo)
+    lo_p, hi_p = int(np.floor(np.log10(lo))), int(np.ceil(np.log10(hi)))
+    vals = [m * 10 ** p for p in range(lo_p, hi_p + 1) for m in (1, 2, 5)]
+    inside = [v for v in vals if lo / 1.2 <= v <= hi * 1.2]
+    return inside if len(inside) >= 3 else [v for v in vals if lo / 3 <= v <= hi * 3]
+
+
+def rgba(hex_color, alpha):
+    """'#c98500', 0.2 -> 'rgba(201,133,0,0.2)' for translucent fills."""
+    h = hex_color.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r},{g},{b},{alpha})"
 
 
 def compact(n):

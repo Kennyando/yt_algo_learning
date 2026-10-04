@@ -134,7 +134,8 @@ def metric_dropdown(component_id, default="views"):
     return dcc.Dropdown(id=component_id, options=METRIC_OPTIONS, value=default, clearable=False)
 
 
-def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True, compare_to=None, compare_range=None):
+def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True, compare_to=None, compare_range=None,
+             compare_phrase=None):
     """
     Stat tile: big number + change vs the previous window.
     The arrow and sign carry the direction (colour is a bonus, never the only cue).
@@ -148,7 +149,7 @@ def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True, compar
         tone = "flat" if direction == "flat" or up_is_good is None else (
             "good" if (direction == "up") == up_is_good else "bad")
         # compare_to is e.g. "6 months"; hovering the line shows the exact dates being compared against
-        what = f"previous {compare_to}" if compare_to else "previous period"
+        what = compare_phrase or (f"previous {compare_to}" if compare_to else "previous period")
         delta_el = html.Div(f"{arrow} {amount} vs {what}", className=f"kpi_delta {tone}",
                             title=f"Compared with {compare_range}" if compare_range else None)
     return html.Div([
