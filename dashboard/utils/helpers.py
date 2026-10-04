@@ -57,27 +57,33 @@ def previous_window(df, period, latest):
     return df[(df["upload_time"] >= start - length) & (df["upload_time"] < start)]
 
 
-def comparison_label(period, latest):
+def fmt_range(start, end):
+    """'3 Mar – 1 Sep 2026' (year only once when both ends share it)."""
+    if start.year == end.year:
+        return f"{start.day} {start:%b} – {end.day} {end:%b %Y}"
+    return f"{start.day} {start:%b %Y} – {end.day} {end:%b %Y}"
+
+
+def period_texts(period, latest, earliest):
     """
-    Words for the window a KPI is compared against, e.g. ("6 months", "1 Mar 2025 – 31 Aug 2025").
-    Returns (None, None) for Max, which has nothing earlier to compare with.
+    Plain-english description of the selected window and of the window it is compared with, e.g.
+    ("Last 6 months · 3 Mar – 1 Sep 2026", "Previous 6 months · 31 Aug 2025 – 2 Mar 2026").
+    The second value is None for Max, which has nothing earlier to compare with.
     """
     start = _start_of_period(latest, period)
     if start is None:
-        return None, None
+        return f"All time · {fmt_range(earliest, latest)}", None
     length = latest - start
-    fixed = {"3m": "3 months", "6m": "6 months", "1y": "year", "2y": "2 years"}
-    if period in fixed:
-        text = fixed[period]
-    elif length.days < 60:  # ytd early in the year
-        text = f"{length.days} days"
-    else:  # ytd: as many months as the year has run so far
-        months = round(length.days / 30.44)
-        text = f"{months} months"
-    prev_start = start - length
-    prev_end = start - pd.Timedelta(days=1)
-    date_range = f"{prev_start:%d %b %Y} – {prev_end:%d %b %Y}"
-    return text, date_range
+    names = {"3m": "3 months", "6m": "6 months", "1y": "12 months", "2y": "2 years"}
+    if period in names:
+        span = names[period]
+        current = f"Last {span}"
+    else:  # ytd
+        span = f"{length.days} days" if length.days < 60 else f"{round(length.days / 30.44)} months"
+        current = "Year to date"
+    prev_start, prev_end = start - length, start - pd.Timedelta(days=1)
+    return (f"{current} · {fmt_range(start, latest)}",
+            f"Previous {span} · {fmt_range(prev_start, prev_end)}")
 
 
 def drop_partial_month(df):
@@ -134,26 +140,27 @@ def metric_dropdown(component_id, default="views"):
     return dcc.Dropdown(id=component_id, options=METRIC_OPTIONS, value=default, clearable=False)
 
 
-def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True, compare_to=None, compare_range=None,
-             compare_phrase=None):
+def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True,
+             period=None, compare_value=None, compare_period=None):
     """
-    Stat tile: big number + change vs the previous window.
+    Stat tile: label, the period the number covers, the big number, and the change vs the
+    comparison period (its value and its period are spelled out underneath).
     The arrow and sign carry the direction (colour is a bonus, never the only cue).
     """
+    children = [html.P(label, className="kpi_label")]
+    if period:
+        children.append(html.P(period, className="kpi_period"))
+    children.append(html.P(value, className="kpi_value"))
     if delta is None:
-        delta_el = html.Div("no earlier period to compare", className="kpi_delta flat")
+        children.append(html.Div("no earlier period to compare", className="kpi_delta flat"))
     else:
         direction = "up" if delta > 0.05 else "down" if delta < -0.05 else "flat"
         arrow = {"up": "▲", "down": "▼", "flat": "▬"}[direction]
         amount = f"{abs(delta):.0f}%" if delta_kind == "pct" else f"{abs(delta):.1f} pts"
         tone = "flat" if direction == "flat" or up_is_good is None else (
             "good" if (direction == "up") == up_is_good else "bad")
-        # compare_to is e.g. "6 months"; hovering the line shows the exact dates being compared against
-        what = compare_phrase or (f"previous {compare_to}" if compare_to else "previous period")
-        delta_el = html.Div(f"{arrow} {amount} vs {what}", className=f"kpi_delta {tone}",
-                            title=f"Compared with {compare_range}" if compare_range else None)
-    return html.Div([
-        html.P(label, className="kpi_label"),
-        html.P(value, className="kpi_value"),
-        delta_el,
-    ], className="kpi_card")
+        vs = f" vs {compare_value}" if compare_value else " vs previous"
+        children.append(html.Div(f"{arrow} {amount}{vs}", className=f"kpi_delta {tone}"))
+        if compare_period:
+            children.append(html.P(compare_period, className="kpi_period"))
+    return html.Div(children, className="kpi_card")

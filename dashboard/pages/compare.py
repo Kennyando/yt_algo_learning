@@ -157,16 +157,24 @@ def update_compare(content_type, metric, year_a, year_b, match_values):
     def change(fn):
         return pct_change(fn(b), fn(a)) if len(a) and len(b) else None
 
-    vs = f"{name_a}"
+    def months_text(year, cap):
+        return f"{year} · Jan–{MONTHS[cap - 1]}" if cap else f"{year}"
+
+    now_text, then_text = months_text(year_b, cap_b), months_text(year_a, cap_a)
+
+    def tile(name, now_val, then_val, change, **kw):
+        return kpi_card(name, now_val, change, period=now_text,
+                        compare_value=then_val, compare_period=then_text, **kw)
+
+    has_both = len(a) > 0 and len(b) > 0
     kpis = [
-        kpi_card(f"Uploads in {name_b}", f"{len(b):,}", change(len), up_is_good=None, compare_phrase=vs),
-        kpi_card(f"Total {low} in {name_b}", compact(b["value"].sum()),
-                 change(lambda d: d["value"].sum()), compare_phrase=vs),
-        kpi_card(f"Median {low} per upload in {name_b}", compact(b["value"].median()),
-                 change(lambda d: d["value"].median()), compare_phrase=vs),
-        kpi_card(f"Like rate in {name_b}", f"{rate(b):.1f}%" if len(b) else "–",
-                 (rate(b) - rate(a)) if len(a) and len(b) and not np.isnan(rate(a)) else None,
-                 delta_kind="pts", compare_phrase=vs),
+        tile("Uploads", f"{len(b):,}", f"{len(a):,}", change(len) if has_both else None, up_is_good=None),
+        tile(f"Total {low}", compact(b["value"].sum()), compact(a["value"].sum()),
+             change(lambda d: d["value"].sum())),
+        tile(f"Median {low} per upload", compact(b["value"].median()), compact(a["value"].median()),
+             change(lambda d: d["value"].median())),
+        tile("Like rate", f"{rate(b):.1f}%" if len(b) else "–", f"{rate(a):.1f}%" if len(a) else "–",
+             (rate(b) - rate(a)) if has_both and not np.isnan(rate(a)) else None, delta_kind="pts"),
     ]
 
     # ---------- monthly charts ----------

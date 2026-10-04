@@ -8,7 +8,7 @@ from dash import html, callback, Input, Output
 from utils.data_loader import load_data  # function from data loader python file
 from utils.helpers import (
     METRIC_LABELS, combine_types, filter_period, previous_window, drop_partial_month,
-    add_multiples, comparison_label, pct_change, filter_group, type_checklist, period_radio,
+    add_multiples, period_texts, pct_change, filter_group, type_checklist, period_radio,
     metric_dropdown, kpi_card,
 )
 from theme import (
@@ -133,17 +133,26 @@ def update_overview(selected_types, metric, time_period):
         return frame["likes"].sum() / frame["views"].sum() * 100 if len(frame) and frame["views"].sum() else np.nan
 
     has_prev = prev is not None and len(prev) > 0
-    cmp_text, cmp_range = comparison_label(time_period, latest)
-    cmp = dict(compare_to=cmp_text, compare_range=cmp_range)
+    cur_text, prev_text = period_texts(time_period, latest, all_dfs["all"]["upload_time"].min())
+
+    def tile(name, now_text, then_text, change, **kw):
+        """One KPI card: this period's number, the earlier period's number and both date ranges."""
+        return kpi_card(name, now_text, change if has_prev else None, period=cur_text,
+                        compare_value=then_text if has_prev else None,
+                        compare_period=prev_text if has_prev else None, **kw)
+
     kpis = [
-        kpi_card("Uploads", f"{len(df):,}",
-                 pct_change(len(df), len(prev)) if has_prev else None, up_is_good=None, **cmp),
-        kpi_card(f"Total {low}", compact(df[metric].sum()),
-                 pct_change(df[metric].sum(), prev[metric].sum()) if has_prev else None, **cmp),
-        kpi_card(f"Median {low} per upload", compact(df[metric].median()),
-                 pct_change(df[metric].median(), prev[metric].median()) if has_prev else None, **cmp),
-        kpi_card("Like rate", f"{rate(df):.1f}%",
-                 (rate(df) - rate(prev)) if has_prev and not np.isnan(rate(prev)) else None, delta_kind="pts", **cmp),
+        tile("Uploads", f"{len(df):,}", f"{len(prev):,}" if has_prev else None,
+             pct_change(len(df), len(prev)) if has_prev else None, up_is_good=None),
+        tile(f"Total {low}", compact(df[metric].sum()),
+             compact(prev[metric].sum()) if has_prev else None,
+             pct_change(df[metric].sum(), prev[metric].sum()) if has_prev else None),
+        tile(f"Median {low} per upload", compact(df[metric].median()),
+             compact(prev[metric].median()) if has_prev else None,
+             pct_change(df[metric].median(), prev[metric].median()) if has_prev else None),
+        tile("Like rate", f"{rate(df):.1f}%",
+             f"{rate(prev):.1f}%" if has_prev and not np.isnan(rate(prev)) else None,
+             (rate(df) - rate(prev)) if has_prev and not np.isnan(rate(prev)) else None, delta_kind="pts"),
     ]
 
     # ---------- monthly charts (the half-finished current month is hidden) ----------
