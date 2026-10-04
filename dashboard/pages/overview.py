@@ -13,7 +13,8 @@ from utils.helpers import (
 )
 from theme import (
     TYPE_COLORS, TYPE_ORDER, SURFACE, MUTED, SECONDARY,
-    duration_ticks, graph, finish, empty_fig, style_lines, fmt_duration, log_ticks, compact,
+    duration_axis_ticks, needs_log_duration, graph, finish, empty_fig, style_lines, fmt_duration,
+    log_ticks, compact,
 )
 
 # register python file as a page and make it available at the path "/" which is the root of the website, as overview
@@ -152,7 +153,7 @@ def update_overview(selected_types, metric, time_period):
     def month_hover(fig, template):
         fig.update_traces(hovertemplate=template + "<extra>%{fullData.name}</extra>")
         fig.update_layout(hovermode="x unified")
-        fig.update_xaxes(tickformat="%b %Y", hoverformat="%b %Y")
+        fig.update_xaxes(tickformat="%b %Y", hoverformat="%b %Y", showspikes=True)
         return fig
 
     if monthly.empty:
@@ -176,14 +177,18 @@ def update_overview(selected_types, metric, time_period):
         uploads_fig.update_layout(hovermode="x unified", bargap=0.5)
         finish(uploads_fig, titles[2], yfmt=",d")
 
-        # length: shorts are ~30s and streams ~4h, so a log axis keeps all three readable
+        # length: shorts (~30s) next to streams (~4h) need a log axis, anything else reads better linear
+        log_len = needs_log_duration(monthly["content_type"])
         dur = monthly.groupby(group)["duration_minutes"].median().reset_index()
         dur["duration_display"] = dur["duration_minutes"].map(fmt_duration)
         duration_fig = style_lines(px.line(dur, y="duration_minutes", custom_data=["duration_display"], **common), n_months)
         month_hover(duration_fig, "%{customdata[0]}")
-        ticks = duration_ticks(dur["duration_minutes"].min(), dur["duration_minutes"].max())
-        duration_fig.update_yaxes(type="log", tickvals=[v for v, _ in ticks], ticktext=[t for _, t in ticks])
-        finish(duration_fig, titles[3] + " (median, log scale)")
+        ticks = duration_axis_ticks(dur["duration_minutes"], log_len)
+        duration_fig.update_yaxes(type="log" if log_len else "linear",
+                                  tickvals=[v for v, _ in ticks], ticktext=[t for _, t in ticks])
+        if not log_len:
+            duration_fig.update_yaxes(rangemode="tozero")
+        finish(duration_fig, titles[3] + (" (median, log scale)" if log_len else " (median)"))
 
         like = monthly.dropna(subset=["like_rate"]).groupby(group)["like_rate"].median().reset_index()
         rate_fig = month_hover(style_lines(px.line(like, y="like_rate", **common), n_months), "%{y:.2f}%")

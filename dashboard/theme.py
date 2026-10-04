@@ -51,6 +51,11 @@ def _build_template():
         tickfont=dict(size=11, color=MUTED),
         title=dict(font=dict(size=12, color=MUTED), standoff=10),
         automargin=True,
+        # hover guide line: thin, solid and recessive instead of the default white dashes
+        spikecolor="#5a6275",
+        spikethickness=-1,  # negative = no white outline around the guide line
+        spikedash="solid",
+        spikemode="across",
     )
     template = go.layout.Template()
     template.layout = dict(
@@ -159,6 +164,32 @@ def duration_ticks(lo, hi):
     if len(ticks) < 3:  # widen until we have something to read
         ticks = thin([(v, t) for v, t in _DURATION_CANDIDATES if lo / 3 <= v <= hi * 3])
     return ticks
+
+
+_LINEAR_STEPS = [0.25, 0.5, 1, 2, 5, 10, 15, 20, 30, 60, 120, 180, 240, 360]
+
+
+def linear_duration_ticks(hi):
+    """Evenly spaced (minutes, label) ticks from 0 up to `hi`, about 5-9 of them."""
+    step = next((st for st in _LINEAR_STEPS if hi / st <= 9), _LINEAR_STEPS[-1])
+    vals = [0.0] + [round(step * i, 4) for i in range(1, int(hi // step) + 1)]
+    return [(v, "0" if v == 0 else fmt_duration(v)) for v in vals]
+
+
+def needs_log_duration(content_types):
+    """
+    Shorts (~30s) next to anything else (10 min to 5 h) is the only mix where a linear
+    axis squashes one group flat, so only then use a log axis.
+    """
+    types = set(content_types)
+    return "Shorts" in types and len(types) > 1
+
+
+def duration_axis_ticks(minutes, log):
+    """Ticks that suit the axis type: log -> 15s/1m/10m/1h..., linear -> evenly spaced."""
+    if log:
+        return duration_ticks(minutes.min(), minutes.max())
+    return linear_duration_ticks(minutes.max())
 
 
 def fmt_duration(minutes):

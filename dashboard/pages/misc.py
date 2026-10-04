@@ -8,8 +8,8 @@ from dash import html, callback, Input, Output
 from utils.data_loader import load_data
 from utils.helpers import combine_types, filter_period, filter_group, type_checklist, period_radio
 from theme import (
-    TYPE_COLORS, TYPE_ORDER, SURFACE, MUTED, HEAT_SCALE, duration_ticks,
-    graph, finish, empty_fig, compact,
+    TYPE_COLORS, TYPE_ORDER, SURFACE, MUTED, HEAT_SCALE, duration_axis_ticks, needs_log_duration,
+    graph, finish, empty_fig, compact, fmt_duration,
 )
 
 # register page
@@ -120,12 +120,22 @@ def update_misc_graphs(selected_types, time_period):
     weekday_fig.update_layout(bargap=0.3, bargroupgap=0.08)
     finish(weekday_fig, TITLES[1], yfmt="~s")
 
-    # ---------- length distribution (log10 minutes so shorts and streams share one axis) ----------
-    d = df[df["duration_minutes"] > 0].assign(log_minutes=lambda x: np.log10(x["duration_minutes"]))
-    duration_fig = px.histogram(d, x="log_minutes", nbins=40, barmode="stack", **common)
+    # ---------- length distribution ----------
+    # linear minutes normally; log only when shorts share the chart with longer content
+    log_len = needs_log_duration(df["content_type"])
+    d = df[df["duration_minutes"] > 0]
+    ticks = duration_axis_ticks(d["duration_minutes"], log_len)
+    if log_len:
+        d = d.assign(length=np.log10(d["duration_minutes"]))
+        tick_pairs = [(np.log10(v), t) for v, t in ticks]
+    else:
+        d = d.assign(length=d["duration_minutes"])
+        tick_pairs = ticks
+    duration_fig = px.histogram(d, x="length", nbins=30, barmode="stack", **common)
     duration_fig.update_traces(marker_line=dict(width=1, color=SURFACE),
                                hovertemplate="%{y} uploads<extra>%{fullData.name}</extra>")
-    _log_axis_ticks(duration_fig, "x", duration_ticks(d["duration_minutes"].min(), d["duration_minutes"].max()))
+    duration_fig.update_xaxes(tickvals=[v for v, _ in tick_pairs], ticktext=[t for _, t in tick_pairs])
+    duration_fig.update_layout(bargap=0.15)
     finish(duration_fig, TITLES[2], ytitle="Uploads")
 
     # ---------- views distribution (views are very skewed, so log10 again) ----------
@@ -135,6 +145,7 @@ def update_misc_graphs(selected_types, time_period):
                             hovertemplate="%{y} uploads<extra>%{fullData.name}</extra>")
     lo, hi = int(np.floor(v["log_views"].min())), int(np.ceil(v["log_views"].max()))
     _log_axis_ticks(views_fig, "x", [(10 ** p, compact(10 ** p)) for p in range(max(lo, 1), hi + 1)])
+    views_fig.update_layout(bargap=0.15)
     finish(views_fig, TITLES[3], ytitle="Uploads")
 
     # ---------- views vs likes (log-log, one fit line per type) ----------
@@ -165,18 +176,20 @@ def update_misc_graphs(selected_types, time_period):
     if vd.empty:
         length_fig = empty_fig(TITLES[5])
     else:
+        ticks = duration_axis_ticks(vd["duration_minutes"], log_len)
+        to_x = np.log10 if log_len else (lambda m: m)
         length_fig = go.Figure()
         for ctype in TYPE_ORDER:
             g = vd[vd["content_type"] == ctype]
             if g.empty:
                 continue
             length_fig.add_trace(go.Scatter(
-                x=np.log10(g["duration_minutes"]), y=np.log10(g["views"]), mode="markers", name=ctype,
-                customdata=np.stack([g["title"], g["duration_minutes"].round(1), g["views"]], axis=-1),
+                x=to_x(g["duration_minutes"]), y=np.log10(g["views"]), mode="markers", name=ctype,
+                customdata=np.stack([g["title"], g["duration_minutes"].map(fmt_duration), g["views"]], axis=-1),
                 marker=dict(size=6, opacity=0.55, color=TYPE_COLORS[ctype], line=dict(width=1, color=SURFACE)),
-                hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]} min · %{customdata[2]:,.0f} views<extra>%{fullData.name}</extra>",
+                hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]} · %{customdata[2]:,.0f} views<extra>%{fullData.name}</extra>",
             ))
-        _log_axis_ticks(length_fig, "x", duration_ticks(vd["duration_minutes"].min(), vd["duration_minutes"].max()))
+        length_fig.update_xaxes(tickvals=[to_x(v) for v, _ in ticks], ticktext=[t for _, t in ticks])
         lo, hi = int(np.floor(np.log10(vd["views"].min()))), int(np.ceil(np.log10(vd["views"].max())))
         _log_axis_ticks(length_fig, "y", [(10 ** p, compact(10 ** p)) for p in range(max(lo, 1), hi + 1)])
         finish(length_fig, TITLES[5], xtitle="Length", ytitle="Views")
@@ -194,6 +207,7 @@ def update_misc_graphs(selected_types, time_period):
         gap_fig.update_traces(xbins=dict(start=0, end=GAP_CAP, size=1), marker_line=dict(width=1, color=SURFACE),
                               hovertemplate="%{x} days apart: %{y} times<extra>%{fullData.name}</extra>")
         gap_fig.update_xaxes(range=[0, GAP_CAP], dtick=3)
+        gap_fig.update_layout(bargap=0.15)
         finish(gap_fig, f"{TITLES[6]} (same content type, {GAP_CAP}+ days grouped)", xtitle="Days", ytitle="Times")
 
     return heatmap_fig, weekday_fig, duration_fig, views_fig, likes_fig, length_fig, gap_fig
