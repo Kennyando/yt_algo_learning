@@ -57,6 +57,29 @@ def previous_window(df, period, latest):
     return df[(df["upload_time"] >= start - length) & (df["upload_time"] < start)]
 
 
+def comparison_label(period, latest):
+    """
+    Words for the window a KPI is compared against, e.g. ("6 months", "1 Mar 2025 – 31 Aug 2025").
+    Returns (None, None) for Max, which has nothing earlier to compare with.
+    """
+    start = _start_of_period(latest, period)
+    if start is None:
+        return None, None
+    length = latest - start
+    fixed = {"3m": "3 months", "6m": "6 months", "1y": "year", "2y": "2 years"}
+    if period in fixed:
+        text = fixed[period]
+    elif length.days < 60:  # ytd early in the year
+        text = f"{length.days} days"
+    else:  # ytd: as many months as the year has run so far
+        months = round(length.days / 30.44)
+        text = f"{months} months"
+    prev_start = start - length
+    prev_end = start - pd.Timedelta(days=1)
+    date_range = f"{prev_start:%d %b %Y} – {prev_end:%d %b %Y}"
+    return text, date_range
+
+
 def drop_partial_month(df):
     """
     The month the data was pulled in is incomplete, which makes every monthly
@@ -111,7 +134,7 @@ def metric_dropdown(component_id, default="views"):
     return dcc.Dropdown(id=component_id, options=METRIC_OPTIONS, value=default, clearable=False)
 
 
-def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True):
+def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True, compare_to=None, compare_range=None):
     """
     Stat tile: big number + change vs the previous window.
     The arrow and sign carry the direction (colour is a bonus, never the only cue).
@@ -124,7 +147,10 @@ def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True):
         amount = f"{abs(delta):.0f}%" if delta_kind == "pct" else f"{abs(delta):.1f} pts"
         tone = "flat" if direction == "flat" or up_is_good is None else (
             "good" if (direction == "up") == up_is_good else "bad")
-        delta_el = html.Div(f"{arrow} {amount} vs previous period", className=f"kpi_delta {tone}")
+        # compare_to is e.g. "6 months"; hovering the line shows the exact dates being compared against
+        what = f"previous {compare_to}" if compare_to else "previous period"
+        delta_el = html.Div(f"{arrow} {amount} vs {what}", className=f"kpi_delta {tone}",
+                            title=f"Compared with {compare_range}" if compare_range else None)
     return html.Div([
         html.P(label, className="kpi_label"),
         html.P(value, className="kpi_value"),

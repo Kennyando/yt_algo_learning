@@ -8,7 +8,7 @@ from dash import html, callback, Input, Output
 from utils.data_loader import load_data  # function from data loader python file
 from utils.helpers import (
     METRIC_LABELS, combine_types, filter_period, previous_window, drop_partial_month,
-    add_multiples, pct_change, filter_group, type_checklist, period_radio,
+    add_multiples, comparison_label, pct_change, filter_group, type_checklist, period_radio,
     metric_dropdown, kpi_card,
 )
 from theme import (
@@ -133,15 +133,17 @@ def update_overview(selected_types, metric, time_period):
         return frame["likes"].sum() / frame["views"].sum() * 100 if len(frame) and frame["views"].sum() else np.nan
 
     has_prev = prev is not None and len(prev) > 0
+    cmp_text, cmp_range = comparison_label(time_period, latest)
+    cmp = dict(compare_to=cmp_text, compare_range=cmp_range)
     kpis = [
         kpi_card("Uploads", f"{len(df):,}",
-                 pct_change(len(df), len(prev)) if has_prev else None, up_is_good=None),
+                 pct_change(len(df), len(prev)) if has_prev else None, up_is_good=None, **cmp),
         kpi_card(f"Total {low}", compact(df[metric].sum()),
-                 pct_change(df[metric].sum(), prev[metric].sum()) if has_prev else None),
+                 pct_change(df[metric].sum(), prev[metric].sum()) if has_prev else None, **cmp),
         kpi_card(f"Median {low} per upload", compact(df[metric].median()),
-                 pct_change(df[metric].median(), prev[metric].median()) if has_prev else None),
+                 pct_change(df[metric].median(), prev[metric].median()) if has_prev else None, **cmp),
         kpi_card("Like rate", f"{rate(df):.1f}%",
-                 (rate(df) - rate(prev)) if has_prev and not np.isnan(rate(prev)) else None, delta_kind="pts"),
+                 (rate(df) - rate(prev)) if has_prev and not np.isnan(rate(prev)) else None, delta_kind="pts", **cmp),
     ]
 
     # ---------- monthly charts (the half-finished current month is hidden) ----------
