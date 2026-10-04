@@ -140,27 +140,49 @@ def metric_dropdown(component_id, default="views"):
     return dcc.Dropdown(id=component_id, options=METRIC_OPTIONS, value=default, clearable=False)
 
 
+def _when(text):
+    """'Last 6 months · 3 Mar – 3 Sep 2026' -> a bold first line and a muted second line."""
+    title, _, detail = text.partition(" · ")
+    return html.Div([html.P(title, className="kpi_when_title"),
+                     html.P(detail or "\u00a0", className="kpi_when_detail")], className="kpi_when")
+
+
 def kpi_card(label, value, delta=None, delta_kind="pct", up_is_good=True,
              period=None, compare_value=None, compare_period=None):
     """
-    Stat tile: label, the period the number covers, the big number, and the change vs the
-    comparison period (its value and its period are spelled out underneath).
+    Stat tile with the two periods side by side:
+
+        label
+        this period      that period
+        BIG VALUE   vs   BIG VALUE
+        up/down %
+
     The arrow and sign carry the direction (colour is a bonus, never the only cue).
+    With nothing to compare against it is a single value and a short note.
     """
-    children = [html.P(label, className="kpi_label")]
-    if period:
-        children.append(html.P(period, className="kpi_period"))
-    children.append(html.P(value, className="kpi_value"))
-    if delta is None:
-        children.append(html.Div("no earlier period to compare", className="kpi_delta flat"))
-    else:
-        direction = "up" if delta > 0.05 else "down" if delta < -0.05 else "flat"
-        arrow = {"up": "▲", "down": "▼", "flat": "▬"}[direction]
-        amount = f"{abs(delta):.0f}%" if delta_kind == "pct" else f"{abs(delta):.1f} pts"
-        tone = "flat" if direction == "flat" or up_is_good is None else (
-            "good" if (direction == "up") == up_is_good else "bad")
-        vs = f" vs {compare_value}" if compare_value else " vs previous"
-        children.append(html.Div(f"{arrow} {amount}{vs}", className=f"kpi_delta {tone}"))
-        if compare_period:
-            children.append(html.P(compare_period, className="kpi_period"))
-    return html.Div(children, className="kpi_card")
+    head = html.P(label, className="kpi_label")
+    if delta is None or compare_value is None:
+        return html.Div([
+            head,
+            _when(period) if period else None,
+            html.P(value, className="kpi_value"),
+            html.Div("no earlier period to compare", className="kpi_delta flat"),
+        ], className="kpi_card")
+
+    direction = "up" if delta > 0.05 else "down" if delta < -0.05 else "flat"
+    arrow = {"up": "▲", "down": "▼", "flat": "▬"}[direction]
+    amount = f"{abs(delta):.0f}%" if delta_kind == "pct" else f"{abs(delta):.1f} pts"
+    tone = "flat" if direction == "flat" or up_is_good is None else (
+        "good" if (direction == "up") == up_is_good else "bad")
+    return html.Div([
+        head,
+        html.Div([
+            _when(period) if period else html.Div(),
+            html.Div(),
+            _when(compare_period) if compare_period else html.Div(),
+            html.P(value, className="kpi_value"),
+            html.Span("vs", className="kpi_vs"),
+            html.P(compare_value, className="kpi_value"),
+            html.Div(f"{arrow} {amount}", className=f"kpi_delta {tone}"),
+        ], className="kpi_compare"),
+    ], className="kpi_card")
